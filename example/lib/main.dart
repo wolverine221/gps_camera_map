@@ -3,7 +3,23 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gps_camera/gps_camera.dart';
 
+// Get your free API key from https://www.maptiler.com/
+const String mapTilerApiKey = String.fromEnvironment('MAPTILER_API_KEY');
+
 void main() {
+  if (mapTilerApiKey.isEmpty) {
+    // ignore: avoid_print
+    print('************************************************************************************************');
+    // ignore: avoid_print
+    print('You need to provide a MapTiler API key to run this example.');
+    // ignore: avoid_print
+    print('Run the following command to set the API key:');
+    // ignore: avoid_print
+    print('flutter run --dart-define=MAPTILER_API_KEY=YOUR_API_KEY');
+    // ignore: avoid_print
+    print('************************************************************************************************');
+    return;
+  }
   runApp(const MyApp());
 }
 
@@ -39,8 +55,8 @@ class _MyHomePageState extends State<MyHomePage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => GpsCamera(
-          config: GpsCameraConfig(
-            mapTilerApiKey:Constants.mapTilerApiKey,
+          config: const GpsCameraConfig(
+            mapTilerApiKey: mapTilerApiKey,
             showMap: true,
             showAddress: true,
             showCoordinates: true,
@@ -48,20 +64,6 @@ class _MyHomePageState extends State<MyHomePage> {
             showTime: true,
           ),
           onImageCaptured: (path) {
-            // Camera saves and returns path.
-            // We pop back to this screen and show result.
-            // But GpsCamera is a screen that pushes capture screen.
-            // onImageCaptured is called from there.
-            // We should pop the GpsCamera screen (and CaptureScreen)
-            // OR GpsCamera handles the flow.
-
-            // In my implementation:
-            // GpsCamera -> CaptureScreen -> (pop with result) -> GpsCamera (onImageCaptured callback)
-
-            // So inside GpsCamera, when we get result, we call onImageCaptured in `_captureImage`.
-            // But we didn't pop `GpsCamera` itself.
-
-            // So we need to pop GpsCamera here?
             Navigator.of(context).pop();
             setState(() {
               _capturedPath = path;
@@ -113,8 +115,4 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-}
-
-class Constants {
-  static String mapTilerApiKey ='YJTqwOH2ibLl66ACB7lA';
 }

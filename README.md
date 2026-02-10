@@ -1,93 +1,82 @@
 # GPS Camera
 
-A Flutter package to capture images with an overlay of GPS location, Address, Date/Time, and a Map snippet.
-
-Supported Platforms: **Android** & **iOS**
-
-> **IMPORTANT:** Please test this package on a **real device**. Emulators often have issues with camera simulation and GPS location, which may lead to unexpected behavior or errors.
+A Flutter package to capture images with GPS coordinates, address, date, and time overlays.
 
 ## Features
 
-- Capture high-resolution images.
-- Automatically fetch GPS location and Address.
-- Overlay a map snippet (OpenStreetMap) on the image.
-- Customizable overlay options (show/hide specific details).
-- Returns the file path of the final processed image.
+- Capture images with a camera preview.
+- Overlay GPS coordinates, address, date, and time on the captured image.
+- Display a map with the captured location.
+- Customizable overlay elements.
 
-## Installation
+## Getting Started
 
-Add `gps_camera` to your `pubspec.yaml`:
+1. **Get a MapTiler API Key:**
+   - Go to [MapTiler](https://www.maptiler.com/) and create a free account.
+   - Get your API key from the MapTiler dashboard.
 
-```yaml
-dependencies:
-  gps_camera:
-    path: ./gps_camera # If local
-    # or git url
-```
+2. **Set the API Key in your project:**
+   - When you run your Flutter app, you need to provide the MapTiler API key as a Dart environment variable. Use the following command:
 
-## Setup
+     ```bash
+     flutter run --dart-define=MAPTILER_API_KEY=YOUR_API_KEY
+     ```
 
-### Android
+     Replace `YOUR_API_KEY` with your actual MapTiler API key.
 
-Add the following permissions to your `android/app/src/main/AndroidManifest.xml`:
+3. **Add the package to your `pubspec.yaml`:**
 
-```xml
-<uses-permission android:name="android.permission.CAMERA" />
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-<uses-permission android:name="android.permission.INTERNET" />
-```
-
-### iOS
-
-Add the following keys to your `ios/Runner/Info.plist`:
-
-```xml
-<key>NSCameraUsageDescription</key>
-<string>We need camera access to take pictures with GPS data.</string>
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>We need location access to tag your photos.</string>
-```
+   ```yaml
+   dependencies:
+     gps_camera: ^0.0.1 # Replace with the latest version
+   ```
 
 ## Usage
 
 ```dart
+import 'package:flutter/material.dart';
 import 'package:gps_camera/gps_camera.dart';
 
-// ...
+void main() {
+  runApp(const MyApp());
+}
 
-Navigator.of(context).push(
-  MaterialPageRoute(
-    builder: (context) => GpsCamera(
-      config: const GpsCameraConfig(
-        showMap: true,
-        showAddress: true,
-        showCoordinates: true,
-        showDate: true,
-        showTime: true,
-        mapTilerApiKey: "YOUR_API_KEY_HERE", // Get a free key from https://www.maptiler.com/
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text('GPS Camera Example')),
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => GpsCamera(
+                    config: const GpsCameraConfig(
+                      mapTilerApiKey: String.fromEnvironment('MAPTILER_API_KEY'),
+                      showMap: true,
+                      showAddress: true,
+                      showCoordinates: true,
+                      showDate: true,
+                      showTime: true,
+                    ),
+                    onImageCaptured: (path) {
+                      // Handle the captured image path
+                      print('Image captured at: $path');
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              );
+            },
+            child: const Text('Open Camera'),
+          ),
+        ),
       ),
-      onImageCaptured: (path) {
-        print("Image captured at: $path");
-        // Display or use the image
-      },
-    ),
-  ),
-);
+    );
+  }
+}
 ```
-
-## Configuration
-
-`GpsCameraConfig` allows you to toggle:
-- `showMap`: Show/Hide the mini-map.
-- `showAddress`: Show/Hide the reversed geocoded address.
-- `showDate` / `showTime`: Show/Hide timestamp.
-- `showCoordinates`: Show/Hide Lat/Long.
-- `mapTilerApiKey`: Your MapTiler API key. **Hint:** You can get a free API key from [MapTiler](https://www.maptiler.com/).
-
-## Dependencies
-
-- `camera`
-- `geolocator`
-- `geocoding`
-- `flutter_map` (for the map overlay)
