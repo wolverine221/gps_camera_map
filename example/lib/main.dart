@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:gps_camera_snap/gps_camera.dart';
+import 'package:gps_camera_snap/gps_camera_snap.dart';
 
 // Get your free API key from https://www.maptiler.com/
 const String mapTilerApiKey = String.fromEnvironment('MAPTILER_API_KEY');

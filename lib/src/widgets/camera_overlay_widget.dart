@@ -73,7 +73,8 @@ class CameraOverlayWidget extends StatelessWidget {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.gps_camera', // Required by OSM
+              userAgentPackageName:
+                  'com.example.gps_camera_snap', // Required by OSM
               tileProvider: NetworkTileProvider(),
             ),
             MarkerLayer(
