@@ -30,7 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  gps_camera:
+  gps_camera_snap:
     path: ../
 
   # The following adds the Cupertino Icons font to your application.

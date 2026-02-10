@@ -18,12 +18,12 @@ class GpsCaptureScreen extends StatefulWidget {
   final Placemark? placemark;
   final GpsCameraConfig config;
   const GpsCaptureScreen({
-    Key? key,
+    super.key,
     required this.imagePath,
     required this.position,
     this.placemark,
     required this.config,
-  }) : super(key: key);
+  });
 
   @override
   State<GpsCaptureScreen> createState() => _GpsCaptureScreenState();
@@ -31,7 +31,7 @@ class GpsCaptureScreen extends StatefulWidget {
 
 class _GpsCaptureScreenState extends State<GpsCaptureScreen> {
   final GlobalKey _boundaryKey = GlobalKey();
-  bool _isProcessing = true;
+  final bool _isProcessing = true;
 
   @override
   void initState() {

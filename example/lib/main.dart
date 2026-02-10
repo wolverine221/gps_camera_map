@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:gps_camera/gps_camera.dart';
+import 'package:gps_camera_snap/gps_camera.dart';
 
 // Get your free API key from https://www.maptiler.com/
 const String mapTilerApiKey = String.fromEnvironment('MAPTILER_API_KEY');
@@ -9,7 +9,9 @@ const String mapTilerApiKey = String.fromEnvironment('MAPTILER_API_KEY');
 void main() {
   if (mapTilerApiKey.isEmpty) {
     // ignore: avoid_print
-    print('************************************************************************************************');
+    print(
+      '************************************************************************************************',
+    );
     // ignore: avoid_print
     print('You need to provide a MapTiler API key to run this example.');
     // ignore: avoid_print
@@ -17,7 +19,9 @@ void main() {
     // ignore: avoid_print
     print('flutter run --dart-define=MAPTILER_API_KEY=YOUR_API_KEY');
     // ignore: avoid_print
-    print('************************************************************************************************');
+    print(
+      '************************************************************************************************',
+    );
     return;
   }
   runApp(const MyApp());

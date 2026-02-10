@@ -14,10 +14,10 @@ class GpsCamera extends StatefulWidget {
   final Function(String path) onImageCaptured;
 
   const GpsCamera({
-    Key? key,
+    super.key,
     required this.config,
     required this.onImageCaptured,
-  }) : super(key: key);
+  });
 
   @override
   State<GpsCamera> createState() => _GpsCameraState();

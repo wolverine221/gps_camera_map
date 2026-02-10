@@ -38,7 +38,7 @@ class GpsService {
         return placemarks.first;
       }
     } catch (e) {
-      print("Error fetching address: $e");
+      // print("Error fetching address: $e");
     }
     return null;
   }

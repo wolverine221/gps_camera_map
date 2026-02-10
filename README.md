@@ -35,7 +35,7 @@ A Flutter package to capture images with GPS coordinates, address, date, and tim
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:gps_camera/gps_camera.dart';
+import 'package:gps_camera_snap/gps_camera.dart';
 
 void main() {
   runApp(const MyApp());

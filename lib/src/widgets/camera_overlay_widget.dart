@@ -12,12 +12,12 @@ class CameraOverlayWidget extends StatelessWidget {
   final GpsCameraConfig config;
 
   const CameraOverlayWidget({
-    Key? key,
+    super.key,
     required this.position,
     this.placemark,
     required this.dateTime,
     required this.config,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +29,9 @@ class CameraOverlayWidget extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [
             Colors.transparent,
-            Colors.black.withOpacity(0.4), // Darker at bottom for readability
+            Colors.black.withValues(
+              alpha: 0.4,
+            ), // Darker at bottom for readability
           ],
         ),
       ),

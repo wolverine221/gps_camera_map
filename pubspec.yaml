@@ -1,9 +1,7 @@
-name: gps_camera
-description: "A new Flutter package project."
+name: gps_camera_snap
+description: "A Flutter camera package that overlays GPS location, address, date, and time on captured images."
 version: 0.0.1
-homepage:
 
-environment:
   sdk: ^3.10.7
   flutter: ">=1.17.0"
 
