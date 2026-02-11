@@ -6,7 +6,9 @@ import 'package:gps_camera_snap/gps_camera_snap.dart';
 // Get your free API key from https://www.maptiler.com/
 const String mapTilerApiKey = String.fromEnvironment('MAPTILER_API_KEY');
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   if (mapTilerApiKey.isEmpty) {
     // ignore: avoid_print
     print(
@@ -24,6 +26,17 @@ void main() {
     );
     return;
   }
+
+  // Validate the API key
+  final isValid = await MapTilerValidator.validate(mapTilerApiKey);
+  MapTilerValidator.logValidationResult(isValid, mapTilerApiKey);
+
+  if (!isValid) {
+    // ignore: avoid_print
+    print('Exiting due to invalid API key...');
+    exit(1);
+  }
+
   runApp(const MyApp());
 }
 
