@@ -1,6 +1,6 @@
 name: gps_camera_snap
 description: "A Flutter camera package that overlays GPS location, address, date, and time on captured images."
-version: 0.0.2
+version: 0.0.3
 
 repository: https://github.com/wolverine221/gps_camera_map.git
 homepage: https://github.com/wolverine221/gps_camera_map.git

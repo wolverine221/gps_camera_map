@@ -30,7 +30,7 @@ A Flutter package to capture images with GPS coordinates, address, date, and tim
 
    ```yaml
    dependencies:
-     gps_camera: ^0.0.2 # Replace with the latest version
+     gps_camera: ^0.0.3 # Replace with the latest version
    ```
 
 ## Usage
