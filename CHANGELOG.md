@@ -1,3 +1,9 @@
-## 0.0.1
+# Changelog
 
-* TODO: Describe initial release.
+## 0.0.2
+- Added support for passing the MapTiler API key using `--dart-define`.
+- Improved documentation and usage instructions.
+- Minor internal improvements.
+
+## 0.0.1
+- Initial release.

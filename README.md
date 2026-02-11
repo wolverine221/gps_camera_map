@@ -9,6 +9,8 @@ A Flutter package to capture images with GPS coordinates, address, date, and tim
 - Display a map with the captured location.
 - Customizable overlay elements.
 
+#upd
+
 ## Getting Started
 
 1. **Get a MapTiler API Key:**
@@ -28,7 +30,7 @@ A Flutter package to capture images with GPS coordinates, address, date, and tim
 
    ```yaml
    dependencies:
-     gps_camera: ^0.0.1 # Replace with the latest version
+     gps_camera: ^0.0.2 # Replace with the latest version
    ```
 
 ## Usage
