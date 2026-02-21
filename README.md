@@ -8,8 +8,9 @@ A Flutter package to capture images with GPS coordinates, address, date, and tim
 - Overlay GPS coordinates, address, date, and time on the captured image.
 - Display a map with the captured location.
 - Customizable overlay elements.
-
-#upd
+- **Tile Caching** — Map tiles are cached to disk to reduce API hits (great for repeated use in the same area).
+- **Google Maps Support** — Use Google Maps tiles as an alternative to MapTiler.
+- **Graceful API Fallback** — If the map API fails or hits rate limits, the overlay shows lat/lng text instead.
 
 ## Getting Started
 
@@ -26,11 +27,13 @@ A Flutter package to capture images with GPS coordinates, address, date, and tim
 
      Replace `YOUR_API_KEY` with your actual MapTiler API key.
 
+   > **Note:** If the API key is missing or invalid, the map will gracefully fall back to showing latitude/longitude coordinates instead.
+
 3. **Add the package to your `pubspec.yaml`:**
 
    ```yaml
    dependencies:
-     gps_camera: ^0.0.3 # Replace with the latest version
+     gps_camera_snap: ^0.0.4
    ```
 
 ## Usage
@@ -64,9 +67,9 @@ class MyApp extends StatelessWidget {
                       showCoordinates: true,
                       showDate: true,
                       showTime: true,
+                      cacheTiles: true, // Cache tiles to reduce API hits (default: true)
                     ),
                     onImageCaptured: (path) {
-                      // Handle the captured image path
                       print('Image captured at: $path');
                       Navigator.of(context).pop();
                     },
@@ -82,3 +85,43 @@ class MyApp extends StatelessWidget {
   }
 }
 ```
+
+## Using Google Maps Instead of MapTiler
+
+You can switch to Google Maps tiles by setting `mapProvider`:
+
+```dart
+GpsCameraConfig(
+  mapTilerApiKey: '', // Can be empty when using Google Maps
+  mapProvider: MapProvider.googleMaps,
+  googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY',
+)
+```
+
+Run with:
+```bash
+flutter run --dart-define=GOOGLE_MAPS_API_KEY=YOUR_KEY --dart-define=USE_GOOGLE_MAPS=true
+```
+
+## Tile Caching
+
+Map tiles are **cached to disk by default** (`cacheTiles: true`). This significantly reduces API hits when you're working repeatedly in the same area (e.g., field work in the same city/region).
+
+- Cached tiles are served from disk on subsequent loads — no network request needed.
+- Cache is managed automatically with a 1GB limit.
+- To disable caching, set `cacheTiles: false`.
+
+## Configuration Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `mapTilerApiKey` | `String` | *required* | MapTiler API key |
+| `mapProvider` | `MapProvider` | `mapTiler` | Tile provider (`mapTiler` or `googleMaps`) |
+| `googleMapsApiKey` | `String?` | `null` | Google Maps API key (required for Google Maps) |
+| `showMap` | `bool` | `true` | Show map in overlay |
+| `showAddress` | `bool` | `true` | Show address text |
+| `showCoordinates` | `bool` | `true` | Show lat/lng coordinates |
+| `showDate` | `bool` | `true` | Show date |
+| `showTime` | `bool` | `true` | Show time |
+| `cacheTiles` | `bool` | `true` | Cache map tiles to disk |
+| `aspectMode` | `CameraAspectMode` | `portrait` | Camera aspect ratio |

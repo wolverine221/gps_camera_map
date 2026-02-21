@@ -4,8 +4,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import '../models/gps_camera_config.dart';
+import '../utils/map_tile_provider.dart';
 
-class CameraOverlayWidget extends StatelessWidget {
+class CameraOverlayWidget extends StatefulWidget {
   final LatLng position;
   final Placemark? placemark;
   final DateTime dateTime;
@@ -18,6 +19,42 @@ class CameraOverlayWidget extends StatelessWidget {
     required this.dateTime,
     required this.config,
   });
+
+  @override
+  State<CameraOverlayWidget> createState() => _CameraOverlayWidgetState();
+}
+
+class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
+  bool _mapLoadFailed = false;
+  int _tileErrorCount = 0;
+
+  /// After a few tile errors, we consider the map as failed and show fallback.
+  static const int _maxTileErrors = 3;
+
+  void _onTileError(TileImage tile, Object error, StackTrace? stackTrace) {
+    _tileErrorCount++;
+    if (_tileErrorCount >= _maxTileErrors && !_mapLoadFailed) {
+      if (mounted) {
+        setState(() {
+          _mapLoadFailed = true;
+        });
+      }
+    }
+  }
+
+  /// Strips API key query parameters from tile URLs so cached tiles
+  /// are identified by coordinates only, not by API key.
+  static String _stripApiKeyFromUrl(String url) {
+    final uri = Uri.parse(url);
+    final cleanedParams = Map<String, String>.from(uri.queryParameters)
+      ..remove('key');
+    final cleanedUri = uri.replace(
+      queryParameters: cleanedParams.isEmpty ? null : cleanedParams,
+    );
+    return BuiltInMapCachingProvider.uuidTileKeyGenerator(
+      cleanedUri.toString(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +79,10 @@ class CameraOverlayWidget extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (config.showMap) _buildMap(context),
+              if (widget.config.showMap && !_mapLoadFailed)
+                _buildMap(context)
+              else if (widget.config.showMap && _mapLoadFailed)
+                _buildFallbackLocation(),
               const SizedBox(width: 12),
               Expanded(child: _buildDetails()),
             ],
@@ -53,6 +93,19 @@ class CameraOverlayWidget extends StatelessWidget {
   }
 
   Widget _buildMap(BuildContext context) {
+    final tileUrl = MapTileUrlBuilder.getTileUrl(widget.config);
+    final userAgent = MapTileUrlBuilder.getUserAgent(widget.config);
+
+    // Configure caching: use built-in disk cache to reduce API hits,
+    // especially when working repeatedly in the same area.
+    final cachingProvider = widget.config.cacheTiles
+        ? BuiltInMapCachingProvider.getOrCreateInstance(
+            // Strip API keys from cache keys so tiles are identified
+            // by coordinates only (avoids cache misses on key changes).
+            tileKeyGenerator: _stripApiKeyFromUrl,
+          )
+        : const DisabledMapCachingProvider();
+
     return Container(
       height: 100,
       width: 100,
@@ -64,7 +117,7 @@ class CameraOverlayWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         child: FlutterMap(
           options: MapOptions(
-            initialCenter: position,
+            initialCenter: widget.position,
             initialZoom: 15.0,
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.none,
@@ -72,15 +125,17 @@ class CameraOverlayWidget extends StatelessWidget {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName:
-                  'com.example.gps_camera_snap', // Required by OSM
-              tileProvider: NetworkTileProvider(),
+              urlTemplate: tileUrl,
+              userAgentPackageName: userAgent,
+              tileProvider: NetworkTileProvider(
+                cachingProvider: cachingProvider,
+              ),
+              errorTileCallback: _onTileError,
             ),
             MarkerLayer(
               markers: [
                 Marker(
-                  point: position,
+                  point: widget.position,
                   width: 30,
                   height: 30,
                   child: const Icon(
@@ -97,18 +152,64 @@ class CameraOverlayWidget extends StatelessWidget {
     );
   }
 
+  /// Fallback widget shown when the map fails to load.
+  /// Shows only lat/lng coordinates in a styled box, no location name.
+  Widget _buildFallbackLocation() {
+    return Container(
+      height: 100,
+      width: 100,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white, width: 2),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.black54,
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.location_on, color: Colors.white70, size: 24),
+              const SizedBox(height: 4),
+              Text(
+                widget.position.latitude.toStringAsFixed(4),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 2)],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                widget.position.longitude.toStringAsFixed(4),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 2)],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDetails() {
     final dateFormat = DateFormat('dd/MM/yyyy');
     final timeFormat = DateFormat('hh:mm:ss a');
 
     String address = "Loading Address...";
-    if (placemark != null) {
+    if (widget.placemark != null) {
       address = [
-        placemark!.street,
-        placemark!.subLocality,
-        placemark!.locality,
-        placemark!.administrativeArea,
-        placemark!.country,
+        widget.placemark!.street,
+        widget.placemark!.subLocality,
+        widget.placemark!.locality,
+        widget.placemark!.administrativeArea,
+        widget.placemark!.country,
       ].where((e) => e != null && e.isNotEmpty).join(", ");
     }
 
@@ -116,7 +217,7 @@ class CameraOverlayWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (config.showAddress)
+        if (widget.config.showAddress)
           Text(
             address,
             style: const TextStyle(
@@ -129,9 +230,9 @@ class CameraOverlayWidget extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         const SizedBox(height: 4),
-        if (config.showCoordinates)
+        if (widget.config.showCoordinates)
           Text(
-            "Lat: ${position.latitude.toStringAsFixed(4)}  Long: ${position.longitude.toStringAsFixed(4)}",
+            "Lat: ${widget.position.latitude.toStringAsFixed(4)}  Long: ${widget.position.longitude.toStringAsFixed(4)}",
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 12,
@@ -139,9 +240,9 @@ class CameraOverlayWidget extends StatelessWidget {
             ),
           ),
         const SizedBox(height: 4),
-        if (config.showDate || config.showTime)
+        if (widget.config.showDate || widget.config.showTime)
           Text(
-            "${dateFormat.format(dateTime)}, ${timeFormat.format(dateTime)}",
+            "${dateFormat.format(widget.dateTime)}, ${timeFormat.format(widget.dateTime)}",
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 12,

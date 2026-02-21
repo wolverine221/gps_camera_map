@@ -6,35 +6,53 @@ import 'package:gps_camera_snap/gps_camera_snap.dart';
 // Get your free API key from https://www.maptiler.com/
 const String mapTilerApiKey = String.fromEnvironment('MAPTILER_API_KEY');
 
+// Optional: Google Maps API key from https://console.cloud.google.com/
+const String googleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+
+// Set to true to use Google Maps instead of MapTiler
+const bool useGoogleMaps = bool.fromEnvironment('USE_GOOGLE_MAPS');
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (mapTilerApiKey.isEmpty) {
-    // ignore: avoid_print
-    print(
-      '************************************************************************************************',
-    );
-    // ignore: avoid_print
-    print('You need to provide a MapTiler API key to run this example.');
-    // ignore: avoid_print
-    print('Run the following command to set the API key:');
-    // ignore: avoid_print
-    print('flutter run --dart-define=MAPTILER_API_KEY=YOUR_API_KEY');
-    // ignore: avoid_print
-    print(
-      '************************************************************************************************',
-    );
-    return;
-  }
+  // Determine which provider to use
+  final mapProvider = useGoogleMaps
+      ? MapProvider.googleMaps
+      : MapProvider.mapTiler;
 
-  // Validate the API key
-  final isValid = await MapTilerValidator.validate(mapTilerApiKey);
-  MapTilerValidator.logValidationResult(isValid, mapTilerApiKey);
-
-  if (!isValid) {
-    // ignore: avoid_print
-    print('Exiting due to invalid API key...');
-    exit(1);
+  // Validate the appropriate API key (but don't exit on failure)
+  if (mapProvider == MapProvider.googleMaps) {
+    if (googleMapsApiKey.isNotEmpty) {
+      final isValid = await MapTilerValidator.validateGoogleMaps(
+        googleMapsApiKey,
+      );
+      MapTilerValidator.logValidationResult(
+        isValid,
+        googleMapsApiKey,
+        provider: MapProvider.googleMaps,
+      );
+    } else {
+      // ignore: avoid_print
+      print(
+        '⚠️  No Google Maps API key provided. Map will show lat/lng fallback.',
+      );
+      // ignore: avoid_print
+      print(
+        '   Run with: flutter run --dart-define=GOOGLE_MAPS_API_KEY=YOUR_KEY --dart-define=USE_GOOGLE_MAPS=true',
+      );
+    }
+  } else {
+    if (mapTilerApiKey.isNotEmpty) {
+      final isValid = await MapTilerValidator.validate(mapTilerApiKey);
+      MapTilerValidator.logValidationResult(isValid, mapTilerApiKey);
+    } else {
+      // ignore: avoid_print
+      print(
+        '⚠️  No MapTiler API key provided. Map will show lat/lng fallback.',
+      );
+      // ignore: avoid_print
+      print('   Run with: flutter run --dart-define=MAPTILER_API_KEY=YOUR_KEY');
+    }
   }
 
   runApp(const MyApp());
@@ -69,11 +87,19 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _capturedPath;
 
   void _openCamera() {
+    final mapProvider = useGoogleMaps
+        ? MapProvider.googleMaps
+        : MapProvider.mapTiler;
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => GpsCamera(
-          config: const GpsCameraConfig(
+          config: GpsCameraConfig(
             mapTilerApiKey: mapTilerApiKey,
+            mapProvider: mapProvider,
+            googleMapsApiKey: googleMapsApiKey.isNotEmpty
+                ? googleMapsApiKey
+                : null,
             showMap: true,
             showAddress: true,
             showCoordinates: true,
