@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.5
+- **Bug Fixed on Cache.
+
 ## 0.0.4
 - **Tile Caching**: Map tiles are now cached to disk (enabled by default via `cacheTiles: true`). Significantly reduces API hits when working in the same area repeatedly.
 - **API Failure Fallback**: If map tiles fail to load (API down, rate limited, or invalid key), the overlay gracefully falls back to showing latitude/longitude text instead of a broken map.

@@ -3,8 +3,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
+
 import '../models/gps_camera_config.dart';
 import '../utils/map_tile_provider.dart';
+import '../tiles/region_cache_manager.dart';
+import '../tiles/region_aware_tile_provider.dart';
 
 class CameraOverlayWidget extends StatefulWidget {
   final LatLng position;
@@ -27,33 +30,24 @@ class CameraOverlayWidget extends StatefulWidget {
 class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
   bool _mapLoadFailed = false;
   int _tileErrorCount = 0;
-
-  /// After a few tile errors, we consider the map as failed and show fallback.
   static const int _maxTileErrors = 3;
 
   void _onTileError(TileImage tile, Object error, StackTrace? stackTrace) {
     _tileErrorCount++;
     if (_tileErrorCount >= _maxTileErrors && !_mapLoadFailed) {
-      if (mounted) {
-        setState(() {
-          _mapLoadFailed = true;
-        });
-      }
+      if (mounted) setState(() => _mapLoadFailed = true);
     }
   }
 
-  /// Strips API key query parameters from tile URLs so cached tiles
-  /// are identified by coordinates only, not by API key.
+  /// Strips API key from URL so cache keys are coordinate-only.
   static String _stripApiKeyFromUrl(String url) {
     final uri = Uri.parse(url);
-    final cleanedParams = Map<String, String>.from(uri.queryParameters)
+    final cleaned = Map<String, String>.from(uri.queryParameters)
       ..remove('key');
-    final cleanedUri = uri.replace(
-      queryParameters: cleanedParams.isEmpty ? null : cleanedParams,
-    );
+    final cleanedUri =
+        uri.replace(queryParameters: cleaned.isEmpty ? null : cleaned);
     return BuiltInMapCachingProvider.uuidTileKeyGenerator(
-      cleanedUri.toString(),
-    );
+        cleanedUri.toString());
   }
 
   @override
@@ -66,16 +60,14 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
           end: Alignment.bottomCenter,
           colors: [
             Colors.transparent,
-            Colors.black.withValues(
-              alpha: 0.4,
-            ), // Darker at bottom for readability
+            Colors.black.withValues(alpha: 0.4),
           ],
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: Container()), // Spacer to push content down
+          Expanded(child: Container()),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -96,15 +88,34 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
     final tileUrl = MapTileUrlBuilder.getTileUrl(widget.config);
     final userAgent = MapTileUrlBuilder.getUserAgent(widget.config);
 
-    // Configure caching: use built-in disk cache to reduce API hits,
-    // especially when working repeatedly in the same area.
-    final cachingProvider = widget.config.cacheTiles
-        ? BuiltInMapCachingProvider.getOrCreateInstance(
-            // Strip API keys from cache keys so tiles are identified
-            // by coordinates only (avoids cache misses on key changes).
-            tileKeyGenerator: _stripApiKeyFromUrl,
-          )
-        : const DisabledMapCachingProvider();
+    // ── Tile provider priority ─────────────────────────────────────
+    // 1. RegionCacheManager  →  pre-warmed disk cache (best option)
+    //    - Serves tiles instantly from disk after prewarm
+    //    - Auto-saves any network tile fetched outside prewarm area
+    //    - Works offline for pre-warmed region
+    //
+    // 2. flutter_map built-in cache  →  live fetch, cached after first use
+    //    - Used when regionCacheManager is null and cacheTiles is true
+    //
+    // 3. Live network only  →  when cacheTiles is false
+    final TileProvider tileProvider;
+
+    if (widget.config.regionCacheManager != null) {
+      final region =
+          widget.config.cacheRegion ?? CacheRegion.keralaAndBorders;
+      tileProvider = RegionAwareTileProvider(
+        manager: widget.config.regionCacheManager!,
+        region: region,
+        networkFallbackUrl: tileUrl,
+      );
+    } else {
+      final cachingProvider = widget.config.cacheTiles
+          ? BuiltInMapCachingProvider.getOrCreateInstance(
+              tileKeyGenerator: _stripApiKeyFromUrl,
+            )
+          : const DisabledMapCachingProvider();
+      tileProvider = NetworkTileProvider(cachingProvider: cachingProvider);
+    }
 
     return Container(
       height: 100,
@@ -127,9 +138,7 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
             TileLayer(
               urlTemplate: tileUrl,
               userAgentPackageName: userAgent,
-              tileProvider: NetworkTileProvider(
-                cachingProvider: cachingProvider,
-              ),
+              tileProvider: tileProvider,
               errorTileCallback: _onTileError,
             ),
             MarkerLayer(
@@ -152,8 +161,8 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
     );
   }
 
-  /// Fallback widget shown when the map fails to load.
-  /// Shows only lat/lng coordinates in a styled box, no location name.
+  /// Fallback shown when map tiles fail to load.
+  /// Displays lat/lng — no internet or API needed.
   Widget _buildFallbackLocation() {
     return Container(
       height: 100,
@@ -202,7 +211,7 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
     final dateFormat = DateFormat('dd/MM/yyyy');
     final timeFormat = DateFormat('hh:mm:ss a');
 
-    String address = "Loading Address...";
+    String address = 'Loading Address...';
     if (widget.placemark != null) {
       address = [
         widget.placemark!.street,
@@ -210,7 +219,7 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
         widget.placemark!.locality,
         widget.placemark!.administrativeArea,
         widget.placemark!.country,
-      ].where((e) => e != null && e.isNotEmpty).join(", ");
+      ].where((e) => e != null && e.isNotEmpty).join(', ');
     }
 
     return Column(
@@ -232,7 +241,8 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
         const SizedBox(height: 4),
         if (widget.config.showCoordinates)
           Text(
-            "Lat: ${widget.position.latitude.toStringAsFixed(4)}  Long: ${widget.position.longitude.toStringAsFixed(4)}",
+            'Lat: ${widget.position.latitude.toStringAsFixed(4)}'
+            '  Long: ${widget.position.longitude.toStringAsFixed(4)}',
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 12,
@@ -242,7 +252,8 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
         const SizedBox(height: 4),
         if (widget.config.showDate || widget.config.showTime)
           Text(
-            "${dateFormat.format(widget.dateTime)}, ${timeFormat.format(widget.dateTime)}",
+            '${dateFormat.format(widget.dateTime)}, '
+            '${timeFormat.format(widget.dateTime)}',
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 12,
